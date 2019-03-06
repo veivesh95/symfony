@@ -5,7 +5,6 @@ namespace PostBundle\Controller;
 use PostBundle\Entity\Category;
 use PostBundle\Entity\Post;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
@@ -15,6 +14,14 @@ use Symfony\Component\Serializer\Serializer;
 
 class PostController extends Controller
 {
+
+    private $parametersAsArray;
+
+    private function setParameterArray($param)
+    {
+        $this->parametersAsArray = json_decode($param->getContent(), true);
+        return $this->parametersAsArray;
+    }
 
     private function respose($param)
     {
@@ -33,9 +40,9 @@ class PostController extends Controller
 
     public function createCatAction(Request $request)
     {
-        $parametersAsArray = json_decode($request->getContent(), true);
+        $this->setParameterArray($request);
         $category = new Category();
-        $category->setName($parametersAsArray['name']);
+        $category->setName($this->parametersAsArray['name']);
         $this->getEntiyManger()->persist($category);
         $this->getEntiyManger()->flush();
         return $this->respose('added category with cat id ' . $category->getId());
@@ -43,17 +50,32 @@ class PostController extends Controller
 
     public function createAction(Request $request)
     {
-        $parametersAsArray = json_decode($request->getContent(), true);
+        $this->setParameterArray($request);
         $category = new Category();
-        $category->setCname($parametersAsArray['cname']);
+        $category->setCname($this->parametersAsArray['cname']);
         $post = new Post();
-        $post->setName($parametersAsArray['name']);
-        $post->setDes($parametersAsArray['des']);
+        $post->setName($this->parametersAsArray['name']);
+        $post->setDes($this->parametersAsArray['des']);
         $post->setCategory($category);
         $this->getEntiyManger()->persist($category);
         $this->getEntiyManger()->persist($post);
         $this->getEntiyManger()->flush();
         return $this->respose('saved post with id ' . $post->getId() . ' saved category with id ' . $category->getId());
+    }
+
+    private function serializeToJson($param)
+    {
+        $encoders = [new XmlEncoder(), new JsonEncoder()];
+        $normalizer = new ObjectNormalizer();
+        $normalizer->setCircularReferenceLimit(2);
+        // Add Circular reference handler
+        $normalizer->setCircularReferenceHandler(function ($object) {
+            return $object->getId();
+        });
+        $normalizers = array($normalizer);
+        $serializer = new Serializer($normalizers, $encoders);
+        $jsonContent = $serializer->serialize($param, 'json');
+        return $jsonContent;
     }
 
     public function showAction($postId)
@@ -62,16 +84,8 @@ class PostController extends Controller
         if (!$post) {
             return $this->respose('not found');
         } else {
-            $encoders = [new XmlEncoder(), new JsonEncoder()];
-            $normalizer = new ObjectNormalizer();
-            $normalizer->setCircularReferenceLimit(2);
-            // Add Circular reference handler
-            $normalizer->setCircularReferenceHandler(function ($object) {
-                return $object->getId();
-            });
-            $normalizers = array($normalizer);
-            $serializer = new Serializer($normalizers, $encoders);
-            $jsonContent = $serializer->serialize($post, 'json');
+            //serializing
+            $jsonContent = $this->serializeToJson($post);
             return $this->respose($jsonContent);
         }
     }
@@ -82,16 +96,8 @@ class PostController extends Controller
         if (!$posts) {
             return $this->respose('not found');
         } else {
-            $encoders = [new XmlEncoder(), new JsonEncoder()];
-            $normalizer = new ObjectNormalizer();
-            $normalizer->setCircularReferenceLimit(2);
-            // Add Circular reference handler
-            $normalizer->setCircularReferenceHandler(function ($object) {
-                return $object->getId();
-            });
-            $normalizers = array($normalizer);
-            $serializer = new Serializer($normalizers, $encoders);
-            $jsonContent = $serializer->serialize($posts, 'json');
+            //serializing
+            $jsonContent = $this->serializeToJson($posts);
             return $this->respose($jsonContent);
         }
     }
