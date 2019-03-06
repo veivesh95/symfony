@@ -5,8 +5,13 @@ namespace PostBundle\Controller;
 use PostBundle\Entity\Category;
 use PostBundle\Entity\Post;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Encoder\XmlEncoder;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Serializer;
 
 class PostController extends Controller
 {
@@ -57,7 +62,37 @@ class PostController extends Controller
         if (!$post) {
             return $this->respose('not found');
         } else {
-            return $this->respose('found');
+            $encoders = [new XmlEncoder(), new JsonEncoder()];
+            $normalizer = new ObjectNormalizer();
+            $normalizer->setCircularReferenceLimit(2);
+            // Add Circular reference handler
+            $normalizer->setCircularReferenceHandler(function ($object) {
+                return $object->getId();
+            });
+            $normalizers = array($normalizer);
+            $serializer = new Serializer($normalizers, $encoders);
+            $jsonContent = $serializer->serialize($post, 'json');
+            return $this->respose($jsonContent);
+        }
+    }
+
+    public function showAllAction()
+    {
+        $posts = $this->getEntiyManger()->getRepository(Post::class)->findAll();
+        if (!$posts) {
+            return $this->respose('not found');
+        } else {
+            $encoders = [new XmlEncoder(), new JsonEncoder()];
+            $normalizer = new ObjectNormalizer();
+            $normalizer->setCircularReferenceLimit(2);
+            // Add Circular reference handler
+            $normalizer->setCircularReferenceHandler(function ($object) {
+                return $object->getId();
+            });
+            $normalizers = array($normalizer);
+            $serializer = new Serializer($normalizers, $encoders);
+            $jsonContent = $serializer->serialize($posts, 'json');
+            return $this->respose($jsonContent);
         }
     }
 

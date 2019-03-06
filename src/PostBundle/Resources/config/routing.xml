@@ -12,6 +12,9 @@
     <route id="post_homepage2" path="/posts1">
         <default key="_controller">PostBundle:Post:create</default>
     </route>
+    <route id="post_homepage8" path="/posts-all">
+        <default key="_controller">PostBundle:Post:showAll</default>
+    </route>
     <route id="post_homepage6" path="/categories">
         <default key="_controller">PostBundle:Post:createCat</default>
     </route>
